@@ -1,0 +1,17 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>reddit media result</title>
+</head>
+<body>
+    <h2>media found</h2>
+    {% if media_url %}
+        <p><a href="{{ media_url }}" target="_blank">view media</a><p>
+    {% else %}
+        <p>no media found or invalid link</p>
+    {% endif %}
+    <a href="/">go back</a>
+</body>
+</html>
