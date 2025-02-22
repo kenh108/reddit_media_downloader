@@ -11,8 +11,8 @@
     <div class="container text-center">
         <h2 class="mb-4">reddit downloader results</h2>
 
-        {% if media_url %}
-            {% if ".mp4" in media_url %}
+        {% if media %}
+            {% if media.type == "video" %}
                 <video controls class="w-100" style="max-width: 600px;">
                     <source src="{{ media.url }}" type="video/mp4">
                     your browser does not support the video tag
