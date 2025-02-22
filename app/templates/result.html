@@ -11,24 +11,19 @@
     <div class="container text-center">
         <h2 class="mb-4">reddit downloader results</h2>
 
-        {% if media %}
-            {% if media.type == "video" %}
+        {% if media_url %}
+            {% if ".mp4" in media_url %}
                 <video controls class="w-100" style="max-width: 600px;">
                     <source src="{{ media.url }}" type="video/mp4">
                     your browser does not support the video tag
                 </video>
-            {% elif media.type == "image" %}
-                <img src="{{ media_url }}" class="img-fluid" alt="reddit image">
-            {% elif media.type == "gallery" %}
-                {% for img_url in media.urls %}
-                    <img src="{{ img_url }}" class="img-fluid my-2" alt="reddit gallery">
-                {% endfor %}
             {% else %}
                 <p><a href="{{ media_url }}" class="btn btn-success" target="_blank">view media</a><p>
             {% endif %}
         {% else %}
             <p class="text-danger">no media found or invalid link</p>
         {% endif %}
+
         <a href="/" class="btn btn-secondary">go back</a>
     </div>
 

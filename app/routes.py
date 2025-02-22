@@ -7,6 +7,6 @@ main = Blueprint('main', __name__)
 def index():
     if request.method == "POST":
         reddit_url = request.form.get("reddit_url")
-        media = fetch_reddit_media(reddit_url)
-        return render_template("result.html", media=media)
+        media_url = fetch_reddit_media(reddit_url)
+        return render_template("result.html", media=media_url)
     return render_template("index.html")
