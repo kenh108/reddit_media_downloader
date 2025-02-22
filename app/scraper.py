@@ -68,7 +68,6 @@ def fetch_reddit_media(url):
     logging.debug(f"Fetching Reddit API: {api_url}")
 
     try:
-        # make request to reddit api
         headers = {"User-Agent": "Mozilla/5.0"}
         response = requests.get(api_url, headers=headers)
         response.raise_for_status()
@@ -100,9 +99,69 @@ def fetch_reddit_media(url):
 
     return None
 
-def extract_redgif_media(redgif_url):
+def extract_redgifs_media(redgifs_url):
     """
     extracts highest quality video from redgifs with sound
     """
+    logging.info(f"Extracting video from Redgifs: {redgifs_url}")
 
-    return redgif_url
+    # extract the redgif video id
+    match = re.search(r"redgifs\.com/watch/([\w-]+)", redgifs_url)
+    if not match:
+        logging.error(f"Invalid Redgifs URL format: {redgifs_url}")
+        return None
+
+    video_id = match.group(1)
+    api_url = f"https://api.redgifs.com/v2/gifs/{video_id}"
+    logging.debug(f"Fetching Redgifs API: {api_url}")
+
+    # get redgifs authentication token
+    token = get_redgifs_token()
+    if not token:
+        logging.error("Failed to obtain Redgifs authentication token.")
+        return None
+
+    try:
+        headers = {
+            "User-Agent": "Mozilla/5.0",
+            "Authorization": f"Bearer {token}"
+        }
+        response = requests.get(api_url, headers=headers)
+        response.raise_for_status()
+        data = response.json()
+        logging.debug(f"Redgifs API response: {str(data)[:50]}...")
+
+        # extract the highest quality video with sound
+        if "gif" in data and "urls" in data["gif"]:
+            video_url = data["gif"]["urls"].get("hd", data["gif"]["urls"].get("sd"))
+            if video_url:
+                logging.info(f"Extracted Redgifs video URL: {video_url}")
+                return {"type": "video", "url": video_url}
+
+    except requests.RequestException as e:
+        logging.error(f"Redgifs API request failed: {e}")
+    except (KeyError, IndexError) as e:
+        logging.error(f"Parsing error in Redgifs API response: {e}")        
+
+    return None
+
+def get_redgifs_token():
+    """
+    fetches a temporary authentication token from redgifs
+    """
+    auth_url = "https://api.redgifs.com/v2/auth/temporary"
+
+    try:
+        headers = {"User-Agent": "Mozilla/5.0"}
+        response = requests.get(auth_url, headers=headers)
+        response.raise_for_status()
+        token = response.json().get("token")
+
+        if token:
+            logging.info(f"Obtained Redgifs authentication token.")
+            return token
+
+    except requests.RequestException as e:
+        logging.error(f"Redgifs authentication request failed: {e}")
+
+    return None
