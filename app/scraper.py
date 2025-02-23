@@ -75,16 +75,23 @@ def fetch_reddit_media(url):
 
         # extract post data
         post_data = data[0]["data"]["children"][0]["data"]
-        logging.debug(f"Extracted post info - Title: {post_data.get('title')}, Video: {post_data.get('media', {}).get('reddit_video', {}).get('fallback_url')}")
+        logging.debug(f"Extracted post info - Title: {post_data.get('title')}")
 
+        # extract reddit hosted video
         if "media" in post_data and post_data["media"] is not None and "reddit_video" in post_data["media"]:
             video_url = post_data["media"]["reddit_video"]["fallback_url"]
+
             logging.info(f"Extracted Reddit video URL: {video_url}")
 
-            # strip query parameters for a clean link
-            parsed_video_url = urlparse(video_url)
-            clean_video_url = f"{parsed_video_url.scheme}://{parsed_video_url.netloc}{parsed_video_url.path}"
-            return {"type": "video", "url": clean_video_url}
+            return {"type": "video", "url": video_url}
+
+        # extract reddit hosted gifs
+        if "preview" in post_data and "images" in post_data["preview"]:
+            image_url = post_data["preview"]["images"][0]["variants"]["gif"]["source"]["url"]
+
+            if ".gif" in image_url:
+                logging.info(f"Extracted Reddit GIF URL: {image_url}")
+                return {"type": "gif", "url": image_url}
 
         # check for redgif links in the post
         if "url_overridden_by_dest" in post_data:
