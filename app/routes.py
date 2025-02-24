@@ -56,11 +56,16 @@ def proxy_video():
 
     # determine type of content
     content_type = "image/gif" if gif_url else "video/mp4"
-    print(content_type)
+
+    content_length = response.headers.get("Content-Length")
 
     # stream the video in chunks to reduce server memory usage
     def generate():
-        for chunk in response.iter_content(chunk_size=1024):
+        for chunk in response.iter_content(chunk_size=8192):
             yield chunk
 
-    return Response(generate(), content_type=content_type)
+    flask_response = Response(generate(), content_type=content_type)
+    if content_length:
+        flask_response.headers["Content-Length"] = content_length
+
+    return flask_response
