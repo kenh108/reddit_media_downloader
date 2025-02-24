@@ -47,7 +47,7 @@ def proxy_video():
     logging.info(f"Fetching media for proxying: {media_url}")
 
     headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36"
     }
 
     response = requests.get(media_url, headers=headers, stream=True)
@@ -56,6 +56,7 @@ def proxy_video():
 
     # determine type of content
     content_type = "image/gif" if gif_url else "video/mp4"
+    print(content_type)
 
     # stream the video in chunks to reduce server memory usage
     def generate():

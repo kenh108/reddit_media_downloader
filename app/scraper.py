@@ -48,7 +48,7 @@ def clean_reddit_url(url):
 def fetch_reddit_media(url):
     """
     extracts media from reddit post url
-    currently only supports videos
+    currently supports reddit hosted videos, reddit hosted gifs, and redgifs videos
     """
     logging.info(f"Processing Reddit URL: {url}")
 
@@ -78,20 +78,19 @@ def fetch_reddit_media(url):
         logging.debug(f"Extracted post info - Title: {post_data.get('title')}")
 
         # extract reddit hosted video
-        if "media" in post_data and post_data["media"] is not None and "reddit_video" in post_data["media"]:
+        if "media" in post_data and post_data["media"] and "reddit_video" in post_data["media"]:
             video_url = post_data["media"]["reddit_video"]["fallback_url"]
-
             logging.info(f"Extracted Reddit video URL: {video_url}")
-
             return {"type": "video", "url": video_url}
 
         # extract reddit hosted gifs
         if "preview" in post_data and "images" in post_data["preview"]:
-            image_url = post_data["preview"]["images"][0]["variants"]["gif"]["source"]["url"]
-
-            if ".gif" in image_url:
-                logging.info(f"Extracted Reddit GIF URL: {image_url}")
-                return {"type": "gif", "url": image_url}
+            variants = post_data["preview"]["images"][0].get("variants", {})
+            if "gif" in variants:
+                gif_url = variants["gif"]["source"]["url"]
+                if ".gif" in gif_url:
+                    logging.info(f"Extracted Reddit GIF URL: {gif_url}")
+                    return {"type": "gif", "url": gif_url}
 
         # check for redgif links in the post
         if "url_overridden_by_dest" in post_data:
@@ -113,12 +112,12 @@ def extract_redgifs_media(redgifs_url):
     logging.info(f"Extracting video from Redgifs: {redgifs_url}")
 
     # extract the redgif video id
-    match = re.search(r"redgifs\.com/watch/([\w-]+)", redgifs_url)
+    match = re.search(r"redgifs\.com/([\w-]+)/([\w-]+)", redgifs_url)
     if not match:
         logging.error(f"Invalid Redgifs URL format: {redgifs_url}")
         return None
 
-    video_id = match.group(1)
+    video_id = match.group(2)
     api_url = f"https://api.redgifs.com/v2/gifs/{video_id}"
     logging.debug(f"Fetching Redgifs API: {api_url}")
 
