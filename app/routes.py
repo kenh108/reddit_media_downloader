@@ -1,7 +1,8 @@
-from flask import Blueprint, render_template, request, redirect, Response
-import requests
+from flask import Blueprint, render_template, request, redirect, send_from_directory
 import logging
+import os
 from .scraper import fetch_reddit_media
+from .downloader import download_media, MEDIA_FOLDER
 
 main = Blueprint('main', __name__)
 
@@ -21,51 +22,26 @@ def index():
 
         logging.info(f"Media found: {media_type} - {media_url}")
 
-        # redirect to proxy route based on media type
-        if media_type == "video":
-            return redirect(f"proxy?video_url={media_url}")
-        elif media_type == "gif":
-            return redirect(f"proxy?gif_url={media_url}")
+        local_filename = download_media(media_url)
 
-        return render_template("index.html", error="Invalid type of media found.")
+        if not local_filename:
+            return render_template("index.html", error="Failed to download media.")
+
+        return redirect(f"/serve_media/{local_filename}")
 
     return render_template("index.html")
 
-@main.route("/proxy")
-def proxy_video():
+@main.route("/serve_media/<filename>")
+def serve_media(filename):
     """
-    fetches the redgifs video and streams it to the user, bypassing
-    mobile restrictions that prevent .mp4 access
+    Serve a previously downloaded media file.
     """
-    video_url = request.args.get("video_url")
-    gif_url = request.args.get("gif_url")
+    file_path = os.path.join(MEDIA_FOLDER, filename)
+    
+    if not os.path.exists(file_path):
+        logging.error(f"File note found: {file_path}")
+        return abort(404)
 
-    if not video_url and not gif_url:
-        return "No media URL provided", 400
+    logging.info(f"Serving file: {file_path}")
 
-    media_url = video_url or gif_url
-    logging.info(f"Fetching media for proxying: {media_url}")
-
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36"
-    }
-
-    response = requests.get(media_url, headers=headers, stream=True)
-    if response.status_code != 200:
-        return f"Failed to fetch media: {response.status_code}", response.status_code
-
-    # determine type of content
-    content_type = "image/gif" if gif_url else "video/mp4"
-
-    content_length = response.headers.get("Content-Length")
-
-    # stream the video in chunks to reduce server memory usage
-    def generate():
-        for chunk in response.iter_content(chunk_size=8192):
-            yield chunk
-
-    flask_response = Response(generate(), content_type=content_type)
-    if content_length:
-        flask_response.headers["Content-Length"] = content_length
-
-    return flask_response
+    return send_from_directory(MEDIA_FOLDER, filename)

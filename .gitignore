@@ -1,6 +1,9 @@
 # ignore pythen virtual env files
 venv/
 
+# ignore static assets
+static/
+
 # ignore vim swap files
 *.swp
 
