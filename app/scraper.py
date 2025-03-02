@@ -1,16 +1,8 @@
 import requests
 import re
 import logging
-import sys
 from urllib.parse import urlparse, urlunparse
-
-logging.basicConfig(
-    level=logging.DEBUG, # change to logging.INFO in production
-    format="%(asctime)s - %(levelname)s - %(message)s",
-    handlers=[
-        logging.StreamHandler(sys.stderr) # logs to standard error
-    ]
-)
+import xml.etree.ElementTree as ET
 
 def expand_mobile_url(url):
     """
@@ -79,9 +71,13 @@ def fetch_reddit_media(url):
 
         # extract reddit hosted video
         if "media" in post_data and post_data["media"] and "reddit_video" in post_data["media"]:
-            video_url = post_data["media"]["reddit_video"]["fallback_url"]
+            video_url = post_data["media"]["reddit_video"]["fallback_url"].split("?")[0] # Remove query params
             logging.info(f"Extracted Reddit video URL: {video_url}")
-            return {"type": "video", "url": video_url}
+
+            dash_url = post_data["media"]["reddit_video"].get("dash_url") # DASH playlist url
+            audio_url = extract_audio_from_dash(dash_url) if dash_url else None
+
+            return {"type": "video", "video_url": video_url, "audio_url": audio_url}
 
         # extract reddit hosted gifs
         if "preview" in post_data and "images" in post_data["preview"]:
@@ -90,7 +86,7 @@ def fetch_reddit_media(url):
                 gif_url = variants["gif"]["source"]["url"]
                 if ".gif" in gif_url:
                     logging.info(f"Extracted Reddit GIF URL: {gif_url}")
-                    return {"type": "gif", "url": gif_url}
+                    return {"type": "gif", "gif_url": gif_url}
 
         # check for redgif links in the post
         if "url_overridden_by_dest" in post_data:
@@ -142,7 +138,7 @@ def extract_redgifs_media(redgifs_url):
             video_url = data["gif"]["urls"].get("hd", data["gif"]["urls"].get("sd"))
             if video_url:
                 logging.info(f"Extracted Redgifs video URL: {video_url}")
-                return {"type": "video", "url": video_url}
+                return {"type": "video", "video_url": video_url, "audio_url": None} # Redgifs audio is included in mp4
 
     except requests.RequestException as e:
         logging.error(f"Redgifs API request failed: {e}")
@@ -169,5 +165,52 @@ def get_redgifs_token():
 
     except requests.RequestException as e:
         logging.error(f"Redgifs authentication request failed: {e}")
+
+    return None
+
+def extract_audio_from_dash(dash_url):
+    """
+    Fetches the DASH manifest and extracts the highest quality audio file URL.
+    """
+    logging.info(f"Examining DASH manifest for Reddit video: {dash_url}")
+
+    try:
+        headers = {"User-Agent": "Mozilla/5.0"}
+        response = requests.get(dash_url, headers=headers)
+        response.raise_for_status()
+
+        # Parse XML into ElementTree object and detect namespace dynamically
+        root = ET.fromstring(response.text)
+        namespace = root.tag.split("}")[0].strip("{") # Extract namespace from root element
+        ns = {"mpd": namespace} if namespace else {}
+
+        highest_bandwidth = 0
+        best_audio_url = None
+
+        # Find all <AdaptationSet> elements (which contain media tracks)
+        for adaptation_set in root.findall(".//mpd:AdaptationSet", ns):
+            content_type = adaptation_set.get("contentType", "")
+
+            if "audio" in content_type:
+                # Each <Representation> contains different quality of same audio
+                for representation in adaptation_set.findall(".//mpd:Representation", ns):
+                    bandwidth = int(representation.get("bandwidth", "0"))
+                    base_url = representation.find("mpd:BaseURL", ns).text
+
+                    if bandwidth > highest_bandwidth:
+                        highest_bandwidth = bandwidth
+                        best_audio_url = f"{dash_url.rsplit('/', 1)[0]}/{base_url}"
+
+        if best_audio_url:
+            logging.info(f"Extracted highest-bandwidth audio URL for Reddit video: {best_audio_url} ({highest_bandwidth} bps)")
+            return best_audio_url
+        else:
+            logging.warning("No valid audio stream found in DASH manifest for Reddit video.")
+            return None
+
+    except requests.RequestException as e:
+        logging.error(f"Failed to fetch DASH manifest: {e}")
+    except ET.ParseError as e:
+        logging.error(f"Failed to parse DASH XML: {e}")
 
     return None

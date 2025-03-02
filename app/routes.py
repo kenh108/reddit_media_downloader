@@ -1,8 +1,17 @@
 from flask import Blueprint, render_template, request, redirect, send_from_directory
 import logging
 import os
+import sys
 from .scraper import fetch_reddit_media
 from .downloader import download_media, MEDIA_FOLDER
+
+logging.basicConfig(
+    level=logging.DEBUG, # change to logging.INFO in production
+    format="%(asctime)s - %(levelname)s - %(message)s",
+    handlers=[
+        logging.StreamHandler(sys.stderr) # logs to standard error
+    ]
+)
 
 main = Blueprint('main', __name__)
 
@@ -17,17 +26,30 @@ def index():
         if not media:
             return render_template("index.html", error="No media found.")
 
-        media_url = media.get("url")
         media_type = media.get("type")
 
-        logging.info(f"Media found: {media_type} - {media_url}")
+        if media_type == "video":
+            video_url = media.get("video_url")
+            audio_url = media.get("audio_url") # Will be None for Redgifs
 
-        local_filename = download_media(media_url)
+            logging.info(f"Media found: video - {video_url} | audio - {audio_url}")
 
-        if not local_filename:
-            return render_template("index.html", error="Failed to download media.")
+            local_filename = download_media(video_url, audio_url)
+            if not local_filename:
+                return render_template("index.html", error="Failed to download video.")
 
-        return redirect(f"/serve_media/{local_filename}")
+            return redirect(f"/serve_media/{local_filename}")
+
+        elif media_type == "gif":
+            gif_url = media.get("gif_url")
+
+            logging.info(f"Media found: GIF - {gif_url}")
+
+            local_filename = download_media(gif_url)
+            if not local_filename:
+                return render_template("index.html", error="Failed to download GIF.")
+
+            return redirect(f"/serve_media/{local_filename}")
 
     return render_template("index.html")
 
