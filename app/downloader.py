@@ -2,6 +2,7 @@ import os
 import requests
 import logging
 import subprocess
+import uuid
 from urllib.parse import urlparse
 
 MEDIA_FOLDER = os.path.abspath("static/media")
@@ -15,9 +16,13 @@ def download_media(video_url, audio_url=None):
     try:
         headers = {"User-Agent": "Mozilla/5.0"}
 
+        # Generate unique ID for this download
+        unique_id = str(uuid.uuid4())[:8]
+
         # Extract filename from video URL
         parsed_video_url = urlparse(video_url)
-        video_filename = os.path.basename(parsed_video_url.path).split("?")[0]
+        original_video_filename = os.path.basename(parsed_video_url.path).split("?")[0]
+        video_filename = f"{unique_id}_{original_video_filename}"
         video_path = os.path.join(MEDIA_FOLDER, video_filename)
 
         # Handle GIFs without merging
@@ -28,9 +33,9 @@ def download_media(video_url, audio_url=None):
             video_filename += ".mp4"
             video_path += ".mp4"
 
-        #if os.path.exists(video_path):
-        #    logging.info(f"File already exists: {video_path}")
-        #    return video_filename
+        if os.path.exists(video_path):
+            logging.info(f"File already exists: {video_path}")
+            return video_filename
 
         logging.info(f"Downloading video: {video_url} -> {video_path}")
         download_file(video_url, video_path)
@@ -40,14 +45,15 @@ def download_media(video_url, audio_url=None):
 
         # Extract filename from audio URL
         parsed_audio_url = urlparse(audio_url)
-        audio_filename = os.path.basename(parsed_audio_url.path).split("?")[0]
+        original_audio_filename = os.path.basename(parsed_audio_url.path).split("?")[0]
+        audio_filename = f"{unique_id}_{original_audio_filename}"
         audio_path = os.path.join(MEDIA_FOLDER, audio_filename)
 
         logging.info(f"Downloading audio: {audio_url} -> {audio_path}")
         download_file(audio_url, audio_path)
 
         # Set filename and path for merged file (video + audio)
-        merged_filename = "merged_" + video_filename
+        merged_filename = f"{unique_id}_merged.mp4"
         merged_path = os.path.join(MEDIA_FOLDER, merged_filename)
 
         logging.info(f"Merging video and audio: {video_path} + {audio_path} -> {merged_path}")
