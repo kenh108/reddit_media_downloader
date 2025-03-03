@@ -10,11 +10,48 @@
 
     <div class="container text-center">
         <h2 class="mb-4">enter a reddit post url:</h2>
+
         <form method="POST" class="w-100" style="max-width: 400px; margin: auto;">
-            <input type="text" name="reddit_url" class="form-control mb-3" placeholder="paste reddit link here" required>
+            <input type="text" id="reddit_url" name="reddit_url" class="form-control mb-3" placeholder="paste reddit link here" required>
             <button type="submit" class="btn btn-primary w-100">fetch media</button>
+            <button type="submit" class="btn btn-secondary w-100 mt-2" id="pasteGo">paste and go</button>
         </form>
+
+        <!-- Media Display Section -->
+        {% if media_url %}
+        <div class="mt-4">
+            <h3>media preview:</h3>
+
+            {% if media_type == "video" %}
+                <video controls class="w-100" style="max-width: 500px;">
+                    <source src="{{ media_url }}" type="video/mp4">
+                    Your browser does not support the video tag.
+                </video>
+            {% elif media_type == "gif" %}
+                <img src="{{ media_url }}" class="img-fluid" style="max-width: 500px;">
+            {% endif %}
+
+            <div class="mt-2">
+                <a href="{{ media_url }}" class="btn btn-success" download>Download</a>
+            </div>
+        </div>
+        {% endif %}
     </div>
+
+    <script>
+        document.getElementById("pasteGo").addEventListener("click", async () => {
+            event.preventDefault();
+            try {
+                const text = await navigator.clipboard.readText();
+                if (text) {
+                    document.getElementById("reddit_url").value = text;
+                    document.querySelector("form").submit();
+                }
+            } catch (err) {
+                alert("Failed to access clipboard.");
+            }
+        });
+    </script>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>

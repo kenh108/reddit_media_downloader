@@ -1,17 +1,9 @@
-from flask import Blueprint, render_template, request, redirect, send_from_directory
+from flask import Blueprint, render_template, request, redirect, send_from_directory, url_for
 import logging
 import os
 import sys
 from .scraper import fetch_reddit_media
 from .downloader import download_media, MEDIA_FOLDER
-
-logging.basicConfig(
-    level=logging.DEBUG, # change to logging.INFO in production
-    format="%(asctime)s - %(levelname)s - %(message)s",
-    handlers=[
-        logging.StreamHandler(sys.stderr) # logs to standard error
-    ]
-)
 
 main = Blueprint('main', __name__)
 
@@ -38,7 +30,6 @@ def index():
             if not local_filename:
                 return render_template("index.html", error="Failed to download video.")
 
-            return redirect(f"/serve_media/{local_filename}")
 
         elif media_type == "gif":
             gif_url = media.get("gif_url")
@@ -49,7 +40,7 @@ def index():
             if not local_filename:
                 return render_template("index.html", error="Failed to download GIF.")
 
-            return redirect(f"/serve_media/{local_filename}")
+        return render_template("index.html", media_url=url_for('main.serve_media', filename=local_filename), media_type=media_type)
 
     return render_template("index.html")
 
@@ -61,7 +52,7 @@ def serve_media(filename):
     file_path = os.path.join(MEDIA_FOLDER, filename)
     
     if not os.path.exists(file_path):
-        logging.warning(f"File note found: {file_path}")
+        logging.warning(f"File not found: {file_path}")
         return abort(404)
 
     logging.debug(f"Serving file: {file_path}")
