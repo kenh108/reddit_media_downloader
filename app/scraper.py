@@ -15,7 +15,7 @@ def expand_mobile_url(url):
             headers = {"User-Agent": "Mozilla/5.0"}
             response = requests.head(url, headers=headers, allow_redirects=True)
             expanded_url = response.url
-            logging.info(f"Expanded short link to: {expanded_url}")
+            logging.debug(f"Expanded short link to: {expanded_url}")
             return expanded_url
         except requests.RequestException as e:
             logging.error(f"Failed to expand short link {url}: {e}")
@@ -131,7 +131,7 @@ def extract_redgifs_media(redgifs_url):
         response = requests.get(api_url, headers=headers)
         response.raise_for_status()
         data = response.json()
-        logging.debug(f"Redgifs API response: {str(data)[:50]}...")
+        logging.debug(f"Redgifs API response: {str(data)}")
 
         # extract the highest quality video with sound
         if "gif" in data and "urls" in data["gif"]:

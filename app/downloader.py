@@ -37,7 +37,7 @@ def download_media(video_url, audio_url=None):
             logging.info(f"File already exists: {video_path}")
             return video_filename
 
-        logging.info(f"Downloading video: {video_url} -> {video_path}")
+        logging.debug(f"Downloading video: {video_url} -> {video_path}")
         download_file(video_url, video_path)
 
         if not audio_url:
@@ -49,14 +49,14 @@ def download_media(video_url, audio_url=None):
         audio_filename = f"{unique_id}_{original_audio_filename}"
         audio_path = os.path.join(MEDIA_FOLDER, audio_filename)
 
-        logging.info(f"Downloading audio: {audio_url} -> {audio_path}")
+        logging.debug(f"Downloading audio: {audio_url} -> {audio_path}")
         download_file(audio_url, audio_path)
 
         # Set filename and path for merged file (video + audio)
         merged_filename = f"{unique_id}_merged.mp4"
         merged_path = os.path.join(MEDIA_FOLDER, merged_filename)
 
-        logging.info(f"Merging video and audio: {video_path} + {audio_path} -> {merged_path}")
+        logging.debug(f"Merging video and audio: {video_path} + {audio_path} -> {merged_path}")
 
         ffmpeg_cmd = [
             "ffmpeg", "-y",
@@ -65,7 +65,9 @@ def download_media(video_url, audio_url=None):
             "-c:v", "copy", "-c:a", "aac",
             merged_path
         ]
-        subprocess.run(ffmpeg_cmd, check=True)
+
+        subprocess.run(ffmpeg_cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        logging.info(f"Merging complete: {merged_path}")
 
         # Delete prep files after merging
         os.remove(video_path)

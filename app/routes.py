@@ -32,7 +32,7 @@ def index():
             video_url = media.get("video_url")
             audio_url = media.get("audio_url") # Will be None for Redgifs
 
-            logging.info(f"Media found: video - {video_url} | audio - {audio_url}")
+            logging.debug(f"Media found: video - {video_url} | audio - {audio_url}")
 
             local_filename = download_media(video_url, audio_url)
             if not local_filename:
@@ -43,7 +43,7 @@ def index():
         elif media_type == "gif":
             gif_url = media.get("gif_url")
 
-            logging.info(f"Media found: GIF - {gif_url}")
+            logging.debug(f"Media found: GIF - {gif_url}")
 
             local_filename = download_media(gif_url)
             if not local_filename:
@@ -61,9 +61,9 @@ def serve_media(filename):
     file_path = os.path.join(MEDIA_FOLDER, filename)
     
     if not os.path.exists(file_path):
-        logging.error(f"File note found: {file_path}")
+        logging.warning(f"File note found: {file_path}")
         return abort(404)
 
-    logging.info(f"Serving file: {file_path}")
+    logging.debug(f"Serving file: {file_path}")
 
     return send_from_directory(MEDIA_FOLDER, filename)
