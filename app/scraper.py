@@ -51,7 +51,7 @@ def fetch_reddit_media(url):
         return None
     
     # validate reddit url
-    if not re.match(r"https?://(www\.)?reddit\.com/r/.+/comments/.+", url):
+    if not re.match(r"https?://(www\.)?reddit\.com/(r|user)/.+/comments/.+", url):
         logging.error(f"Invalid Reddit URL format: {url}")
         return None
 
